@@ -149,7 +149,7 @@ def crawling_kyochon():
                 address = strings[5].strip()
                 sidogu = address.split()[:2]# 슬라이싱 이용
                 results.append((name, address) + tuple(sidogu))
-                print(results)
+                print(sidogu)
             except Exception as e:
                 print('%s : %s' % (e, datetime.now()), file=sys.stderr)
                 # print(name)
