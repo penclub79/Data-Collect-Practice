@@ -4,8 +4,10 @@ from itertools import count
 from bs4 import BeautifulSoup
 import xml.etree.ElementTree as et
 from datetime import datetime
+from selenium import webdriver
 import collection.crawler as cw
 import pandas as pd
+import time
 from collection.data_dict import sido_dict, gungu_dict
 
 def my_error(e):
@@ -176,6 +178,61 @@ def crawling_kyochon():
         index=True)
     # pass
 
+def crawling_goobne():
+    url='http://www.goobne.co.kr/store/search_store.jsp'
+
+    #첫 페이지 로딩
+    wd= webdriver.Chrome('D:\PycharmProjects\chromedriver_win32\chromedriver.exe')
+    wd.get(url)
+    time.sleep(5)
+    # print(wd.page_source)
+
+    results = []
+    for page in count(start=1):
+        #자바스크립트 실행
+        script = 'store.getList(%d)' % page
+        wd.execute_script(script)   # 실행
+        print('%s : success for script execute [%s]' % (datetime.now(), script))
+        time.sleep(5)
+
+        # 실행결과 HTML(rendering된 HTML) 가져오기
+        html = wd.page_source
+
+        # parsing with bs4
+        bs = BeautifulSoup(html, 'html.parser')
+        tag_tbody = bs.find('tbody', attrs={'id' : 'store_list'})
+        tags_tr = tag_tbody.findAll('tr')   #s붙이면 리스트로 된다.
+        # print(tag_tbody)
+
+        #마지막 검출
+        if tags_tr[0].get('class') is None:
+            break
+
+
+        for tag_tr in tags_tr:
+            strings = list(tag_tr.strings)
+        # print(strings)
+            name = strings[1]
+            address = strings[6]
+            sidogu = address.split()[:2]    #어드레스에서 슬라이싱 해서 뽑아내야한다.
+
+            results.append((name, address)+ tuple(sidogu))
+
+        print(results)
+
+
+    #store
+    table = pd.DataFrame(results, columns=['name', 'address', 'sido', 'gungu'])
+
+    table['sido'] = table.sido.apply(lambda v: sido_dict.get(v, v))   #리턴값을 세팅
+    table['gungu'] = table.sido.apply(lambda v: gungu_dict.get(v, v))  # 리턴값을 세팅
+
+    table.to_csv(
+        '{0}/goobne_table.csv'.format(RESULT_DIRECTORY),
+        encoding='utf-8',
+        mode='w',
+        index=True)
+
 if __name__ == '__main__':
     #페리카나
     # crawling_pelicana()
@@ -187,4 +244,7 @@ if __name__ == '__main__':
     #     store=store_nene)
 
     #교촌
-    crawling_kyochon()
+    # crawling_kyochon()
+
+    #굽네
+    crawling_goobne()
