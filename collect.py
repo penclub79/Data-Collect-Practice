@@ -117,66 +117,105 @@ def store_nene(data):
         mode='w',
         index=True)
 
-
 def crawling_kyochon():
-    results = []
+    result = []
+
     for sido1 in range(1, 18):
-        # sido1 = 'http://www.kyochon.com/shop/domestic.asp?sido1=%s&sido2=0&txtsearch=' % (sido1)
-        # print(sido1)
         for sido2 in count(start=1):
-            url = 'http://www.kyochon.com/shop/domestic.asp?sido1=%s&sido2=%s' % (sido1, sido2)
-            # print(url)
+            url = 'http://www.kyochon.com/shop/domestic.asp?sido1=%d&sido2=%d&txtsearch=' % (sido1, sido2)
             html = cw.crawling(url=url)
-            if html == None:
-                break   #빠져나가면서 다음 sido가 2로 증가
 
-            # print(html)
+            if html is None:
+                break
+
             bs = BeautifulSoup(html, 'html.parser')
+            tag_ul = bs.find('ul', attrs={'class': 'list'})
 
-            tag_div = bs.find('div', attrs={'class': 'shopSchList'})
-            tag_li = tag_div.findAll('li')
-            # print(tag_li)
+            for tag_a in tag_ul.findAll('a'):
+                tag_dt = tag_a.find('dt')
+                if tag_dt is None:
+                    break
 
-            if tag_li == None:
-                break;
+                name = tag_dt.get_text()
 
+                tag_dd = tag_a.find('dd')
+                if tag_dd is None:
+                    break
 
-            for tags_li in tag_li:
-                strings = list(tags_li.strings)
-                # print(strings)
-                # print(strings)
+                address = tag_dd.get_text().strip().split('\r')[0]
+                sidogu = address.split()[:2]
+                result.append((name, address) + tuple(sidogu))
 
-            try:
-                name = strings[3]
-                address = strings[5].strip()
-                sidogu = address.split()[:2]# 슬라이싱 이용
-                results.append((name, address) + tuple(sidogu))
-                print(sidogu)
-            except Exception as e:
-                print('%s : %s' % (e, datetime.now()), file=sys.stderr)
-                # print(name)
+    table = pd.DataFrame(result, columns=['name', 'address', 'sido', 'gungu'])
 
+    # 중복 제거
+    table = table.\
+        drop_duplicates(subset='name', keep='first').\
+        reset_index(drop=True)
 
-                # print(address)
-
-                # print(sidogu)
-
-                # print(results)
-
-            # print(sido1 + ":" + len(tag_li), sep=':')
-
-        # store
-    table = pd.DataFrame(results, columns=['name', 'address', 'sido', 'gungu'])
-    print(table)
-    table['sido'] = table.sido.apply(lambda v: sido_dict.get(v, v))  # 처리까지 됐다.
+    table['sido'] = table.sido.apply(lambda v: sido_dict.get(v, v))
     table['gungu'] = table.gungu.apply(lambda v: gungu_dict.get(v, v))
 
-    table.to_csv(
-        '{0}/kyochon_table.csv'.format(RESULT_DIRECTORY),
-        encoding='utf-8',
-        mode='w',
-        index=True)
-    # pass
+    table.to_csv('{0}/kyochon_table.csv'.format(RESULT_DIRECTORY), encoding='utf-8', mode='w', index=True)
+
+# def crawling_kyochon():
+#     results = []
+#     for sido1 in range(1, 18):
+#         # sido1 = 'http://www.kyochon.com/shop/domestic.asp?sido1=%s&sido2=0&txtsearch=' % (sido1)
+#         # print(sido1)
+#         for sido2 in count(start=1):
+#             url = 'http://www.kyochon.com/shop/domestic.asp?sido1=%d&sido2=%d' % (sido1, sido2)
+#             # print(url)
+#             html = cw.crawling(url=url)
+#
+#
+#             if html is None:
+#                 break   #빠져나가면서 다음 sido가 2로 증가
+#
+#
+#             # print(html)
+#             bs = BeautifulSoup(html, 'html.parser')
+#
+#             tag_ul = bs.find('ul', attrs={'class': 'list'})
+#
+#         for tag_a in tag_ul.findAll('a'):
+#             tag_dt = tag_a.find('dt')
+#             if tag_dt is None:
+#                 break
+#
+#             name = tag_dt.get_text()
+#             # print(tag_li)
+#
+#             tag_dd = tag_a.find('dd')
+#
+#             if tag_dd == None:
+#                 break;
+#
+#             address = tag_dd.get_text().strip().split('\r')[0]
+#             sidogu = address.split()[:2]
+#             results.append((name, address) + tuple(sidogu))
+#             # print(address)
+#
+#             # print(sidogu)
+#
+#             # print(results)
+#             # print(sido1 + ":" + len(tag_li), sep=':')
+#         # store
+#     table = pd.DataFrame(results, columns=['name', 'address', 'sido', 'gungu'])
+#     # print(table)
+#
+#     table = table. \
+#         drop_duplicates(subset='name', keep='first'). \
+#         reset_index(drop=True)
+#
+#     table['sido'] = table.sido.apply(lambda v: sido_dict.get(v, v))  # 처리까지 됐다.
+#     table['gungu'] = table.gungu.apply(lambda v: gungu_dict.get(v, v))
+#
+#     table.to_csv(
+#         '{0}/kyochon_table.csv'.format(RESULT_DIRECTORY),
+#         encoding='utf-8',
+#         mode='w',
+#         index=True)
 
 def crawling_goobne():
     url='http://www.goobne.co.kr/store/search_store.jsp'
@@ -244,7 +283,7 @@ if __name__ == '__main__':
     #     store=store_nene)
 
     #교촌
-    # crawling_kyochon()
+    crawling_kyochon()
 
     #굽네
-    crawling_goobne()
+    # crawling_goobne()
